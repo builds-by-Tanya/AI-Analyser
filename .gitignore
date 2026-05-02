@@ -1,0 +1,11 @@
+# Python
+__pycache__/
+*.pyc
+.env
+pipeline.log
+
+# Streamlit
+.streamlit/
+
+# Data
+data/
