@@ -23,7 +23,7 @@ logging.basicConfig(
     format="%(asctime)s [%(levelname)s] %(name)s — %(message)s",
     handlers=[
         logging.StreamHandler(sys.stdout),
-        logging.FileHandler("pipeline.log"),
+        logging.FileHandler("pipeline.log", encoding="utf-8"),
     ],
 )
 logger = logging.getLogger("pipeline")

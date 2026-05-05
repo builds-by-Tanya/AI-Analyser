@@ -41,7 +41,7 @@ def compute_all_revenue(listings: list[dict]) -> list[dict]:
         sales = estimate_monthly_sales(bsr)
         revenue = estimate_monthly_revenue(bsr, price)
 
-        logger.info("Revenue for %s: BSR=%d → ~%d sales/mo → $%.2f/mo",
+        logger.info("Revenue for %s: BSR=%d -> ~%d sales/mo -> $%.2f/mo",
                     asin, bsr, sales, revenue)
         results.append({
             "asin": asin,

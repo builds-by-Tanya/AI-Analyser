@@ -1,0 +1,71 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Listing {
+  id          String   @id @default(uuid())
+  asin        String   @unique
+  url         String
+  title       String?
+  brand       String?
+  price       Float?
+  bsr         Int?
+  bsrCategory String?
+  rating      Float?
+  reviewCount Int?
+  bullets     String?  // Stored as JSON string
+  imageUrls   String?  // Stored as JSON string
+  isUser      Boolean  @default(false)
+  scrapedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  reviews     Review[]
+  analysis    AnalysisResult?
+}
+
+model Review {
+  id          String   @id @default(uuid())
+  listingAsin String
+  listing     Listing  @relation(fields: [listingAsin], references: [asin], onDelete: Cascade)
+  author      String?
+  rating      Int
+  title       String?
+  body        String
+  reviewDate  DateTime?
+  verified    Boolean  @default(false)
+  helpful     Int      @default(0)
+  scrapedAt   DateTime @default(now())
+  createdAt   DateTime @default(now())
+}
+
+model AnalysisResult {
+  id               String   @id @default(uuid())
+  listingAsin      String   @unique
+  listing          Listing  @relation(fields: [listingAsin], references: [asin], onDelete: Cascade)
+  purchaseCriteria String   // Stored as JSON string
+  complaints       String   // Stored as JSON string
+  strengths        String   // Stored as JSON string
+  sentiment        String   // Stored as JSON string
+  gaps             String   // Stored as JSON string
+  analysedAt       DateTime @default(now())
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+}
+
+model ScrapeJob {
+  id             String   @id
+  isRunning      Boolean  @default(true)
+  totalListings  Int
+  totalReviews   Int      @default(0)
+  currentAsin    String?
+  completedAsins Int      @default(0)
+  error          String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+}

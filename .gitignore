@@ -9,3 +9,13 @@ pipeline.log
 
 # Data
 data/
+web/dev.db
+web/dev.db-journal
+
+# Next.js
+web/node_modules/
+web/.next/
+web/.env
+web/.env.local
+web/prisma/dev.db
+web/prisma/dev.db-journal
