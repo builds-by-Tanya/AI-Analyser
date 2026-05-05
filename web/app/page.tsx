@@ -1,6 +1,6 @@
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
-import { ShaderBackground } from '@/components/ui/shader-background';
+import ShaderBackground from '@/components/ui/shader-background';
 import { TrendingUp, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
 
 export default function LandingPage() {
