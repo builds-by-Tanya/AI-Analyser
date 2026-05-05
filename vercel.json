@@ -1,8 +1,0 @@
-{
-  "buildCommand": "cd web && npm install && npx prisma generate && npx next build",
-  "outputDirectory": "web/.next",
-  "framework": "nextjs",
-  "env": {
-    "DATABASE_URL": "file:./dev.db"
-  }
-}
