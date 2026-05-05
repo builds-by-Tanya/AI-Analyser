@@ -1,5 +1,6 @@
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
+import { buttonVariants } from '@/components/ui/button';
+import { cn } from '@/lib/utils';
 import ShaderBackground from '@/components/ui/shader-background';
 import { TrendingUp, ShieldCheck, Zap, BarChart3 } from 'lucide-react';
 
@@ -26,12 +27,24 @@ export default function LandingPage() {
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 mb-16">
-          <Button asChild size="lg" className="bg-emerald-600 hover:bg-emerald-500 text-white px-8 h-12 text-lg rounded-xl shadow-lg shadow-emerald-900/20">
-            <Link href="/dashboard">Start Analyzing Now</Link>
-          </Button>
-          <Button variant="outline" size="lg" className="border-slate-700 text-slate-300 hover:bg-slate-800 h-12 text-lg rounded-xl">
+          <Link 
+            href="/dashboard" 
+            className={cn(
+              buttonVariants({ variant: 'default', size: 'lg' }), 
+              "bg-emerald-600 hover:bg-emerald-500 text-white px-8 h-12 text-lg rounded-xl shadow-lg shadow-emerald-900/20"
+            )}
+          >
+            Start Analyzing Now
+          </Link>
+          <Link 
+            href="/dashboard" 
+            className={cn(
+              buttonVariants({ variant: 'outline', size: 'lg' }), 
+              "border-slate-700 text-slate-300 hover:bg-slate-800 h-12 text-lg rounded-xl"
+            )}
+          >
             View Live Demo
-          </Button>
+          </Link>
         </div>
 
         {/* Feature Highlights (No results/data here) */}
