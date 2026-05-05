@@ -1,7 +1,0 @@
-{
-  "buildCommand": "npx prisma generate && npx next build",
-  "framework": "nextjs",
-  "env": {
-    "DATABASE_URL": "file:./dev.db"
-  }
-}
