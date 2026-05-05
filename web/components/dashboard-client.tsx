@@ -122,8 +122,8 @@ export default function DashboardClient({ data, metrics }: { data: any[], metric
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         {[
-          { label: 'Total Market Size', value: formatCur(metrics.marketSize), sub: 'Sum of monthly revenue across top 10', icon: <DollarSign className="h-4 w-4 text-emerald-400" /> },
-          { label: 'Average Rating', value: metrics.avgRating.toFixed(1), sub: 'Across analyzed listings', icon: <Star className="h-4 w-4 text-amber-400" /> },
+          { label: 'Total Market Size', value: formatCur(metrics.marketSize), sub: `Sum of monthly revenue across top ${metrics.count}`, icon: <DollarSign className="h-4 w-4 text-emerald-400" /> },
+          { label: 'Average Rating', value: metrics.avgRating.toFixed(1), sub: `Across ${metrics.count} analyzed listings`, icon: <Star className="h-4 w-4 text-amber-400" /> },
           { label: 'Total Reviews', value: metrics.totalReviewsScraped.toLocaleString(), sub: 'Analyzed by Pixii AI', icon: <MessageSquareText className="h-4 w-4 text-blue-400" /> },
           { label: 'Top Purchase Criterion', value: metrics.mostCommonCriterion, sub: 'Most frequently mentioned feature', icon: <TrendingUp className="h-4 w-4 text-purple-400" /> },
         ].map((m, i) => (

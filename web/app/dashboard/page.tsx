@@ -53,14 +53,15 @@ export default async function DashboardPage() {
     };
   });
 
-  // Sort by revenue descending for the chart
+  // Sort by revenue descending and LIMIT TO TOP 10
   enhancedListings.sort((a, b) => b.revenueData.estimatedMonthlyRevenue - a.revenueData.estimatedMonthlyRevenue);
+  const top10Listings = enhancedListings.slice(0, 10);
 
-  const marketSize = enhancedListings.reduce((sum, l) => sum + l.revenueData.estimatedMonthlyRevenue, 0);
+  const marketSize = top10Listings.reduce((sum, l) => sum + l.revenueData.estimatedMonthlyRevenue, 0);
 
   // Find most common purchase criterion across all analyzed products
   const criteriaCounts: Record<string, number> = {};
-  enhancedListings.forEach(l => {
+  top10Listings.forEach(l => {
     if (l.parsedAnalysis?.purchaseCriteria) {
       l.parsedAnalysis.purchaseCriteria.forEach((c: any) => {
         const name = c.name.toLowerCase();
@@ -87,7 +88,8 @@ export default async function DashboardPage() {
     marketSize,
     avgRating,
     totalReviewsScraped,
-    mostCommonCriterion
+    mostCommonCriterion,
+    count: top10Listings.length
   };
 
   return (
@@ -102,7 +104,7 @@ export default async function DashboardPage() {
         </div>
         
         {/* Pass processed data to the interactive client component */}
-        <DashboardClient data={enhancedListings} metrics={metrics} />
+        <DashboardClient data={top10Listings} metrics={metrics} />
       </div>
     </div>
   );
