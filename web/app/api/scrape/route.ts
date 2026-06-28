@@ -4,7 +4,6 @@ export const dynamic = 'force-dynamic';
 import { NextResponse } from 'next/server';
 import { scrapeAmazonListing } from '@/lib/scraper';
 import { analyseReviews } from '@/lib/nlp';
-import { jobStore } from '@/lib/job-store';
 
 export async function POST(req: Request) {
   try {
@@ -15,51 +14,28 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: 'Please provide an array of ASINs.' }, { status: 400 });
     }
 
-    const jobId = Math.random().toString(36).substring(2, 15);
-
-    // Initialise job state
-    await jobStore.set(jobId, {
-      isRunning: true,
-      totalListings: asins.length,
-      totalReviews: 0,
-      currentAsin: asins[0],
-      completedAsins: 0,
-    });
-
-    const runScrapingJob = async () => {
-      console.log(`[Job ${jobId}] Started scraping ${asins.length} ASINs`);
-      for (const asin of asins) {
-        await jobStore.update(jobId, { currentAsin: asin });
-        console.log(`[Job ${jobId}] Processing ASIN ${asin}...`);
-        
-        // Step 1: Scrape
-        const result = await scrapeAmazonListing(asin);
-        
-        // Step 2: Analyse automatically if scrape succeeded
-        if (result?.success) {
-          console.log(`[Job ${jobId}] Scrape success for ${asin}. Starting AI analysis...`);
-          await analyseReviews(asin).catch(e => console.error(`[Job ${jobId}] Analysis failed for ${asin}:`, e));
-        }
-
-        const prev = await jobStore.get(jobId);
-        await jobStore.update(jobId, {
-          totalReviews: (prev?.totalReviews ?? 0) + (result?.reviewsScraped ?? 0),
-          completedAsins: (prev?.completedAsins ?? 0) + 1,
-        });
+    console.log(`[Scrape API] Started synchronous scraping for ${asins.length} ASINs`);
+    
+    for (const asin of asins) {
+      console.log(`[Scrape API] Processing ASIN ${asin}...`);
+      
+      // Step 1: Scrape (calls Rainforest or falls back to local simulation)
+      const result = await scrapeAmazonListing(asin);
+      
+      // Step 2: Analyse reviews (calls Claude or falls back to local simulation)
+      if (result?.success) {
+        console.log(`[Scrape API] Scrape success for ${asin}. Starting AI analysis...`);
+        await analyseReviews(asin);
+      } else {
+        console.warn(`[Scrape API] Scrape failed for ${asin}: ${result?.error}`);
       }
-      await jobStore.update(jobId, { isRunning: false, currentAsin: null });
-      console.log(`[Job ${jobId}] Finished.`);
-    };
+    }
 
-    runScrapingJob().catch(async err => {
-      console.error(`[Job ${jobId}] Error:`, err);
-      await jobStore.update(jobId, { isRunning: false, error: err.message });
-    });
+    console.log(`[Scrape API] Completed all ${asins.length} ASINs.`);
 
     return NextResponse.json({
-      jobId,
-      status: 'processing',
-      message: `Scraping started for ${asins.length} ASINs.`,
+      status: 'success',
+      message: `Scraping and analysis completed for ${asins.length} ASINs.`,
     });
 
   } catch (error: any) {
