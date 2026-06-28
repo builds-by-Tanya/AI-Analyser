@@ -37,7 +37,7 @@ def stage_banner(name: str):
 
 # ── Stage 1: Scrape ───────────────────────────────────────────────────────────
 
-def run_scrape(asins: list[str]):
+def run_scrape(asins: list[str], target_reviews: int = 1000):
     stage_banner("1 — Scrape listings & reviews")
     for asin in asins:
         logger.info("Processing ASIN: %s", asin)
@@ -68,12 +68,12 @@ def run_scrape(asins: list[str]):
 
         # Reviews
         existing = db.count_reviews(asin)
-        if existing >= 100:
+        if existing >= target_reviews:
             logger.info("  Already have %d reviews for %s — skipping scrape.", existing, asin)
             continue
 
         try:
-            raw_reviews = scraper.fetch_reviews(asin, target=1000)
+            raw_reviews = scraper.fetch_reviews(asin, target=target_reviews)
             parsed = scraper.parse_reviews(raw_reviews)
             if parsed:
                 db.insert_reviews(asin, parsed)

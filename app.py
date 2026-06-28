@@ -14,6 +14,7 @@ import plotly.graph_objects as go
 # Make sure we can import project modules
 sys.path.insert(0, str(Path(__file__).parent))
 import db
+import pipeline
 
 st.set_page_config(
     page_title="Amazon Review Analytics",
@@ -179,14 +180,113 @@ def short_label(listing: dict) -> str:
 st.title("✨ AI Review Analytics")
 st.markdown("<p style='color: #94a3b8; font-size: 1.1rem; margin-bottom: 2rem;'>Competitive intelligence powered by advanced sentiment analysis & machine learning</p>", unsafe_allow_html=True)
 
-listings, revenue_rows, criteria, scores_matrix = load_data()
+listings, your_revenue_rows, criteria, scores_matrix = load_data()
+
+# ── Sidebar ───────────────────────────────────────────────────────────────────
+
+with st.sidebar:
+    st.markdown("<h2 style='text-align: center; margin-bottom: 1.5rem;'>Control Panel</h2>", unsafe_allow_html=True)
+    
+    with st.expander("🚀 Run New Analysis", expanded=not listings):
+        st.markdown("<p style='font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem;'>Enter a list of 2 to 10 ASINs to scrape and analyze. The first ASIN is YOUR listing; others are competitors.</p>", unsafe_allow_html=True)
+        
+        # Default value: join existing ASINs if any, otherwise example
+        default_asins = ",".join(listings.keys()) if listings else "B08N5WRWNW,B07XYZ1234,B09B2SB9Y6"
+        asin_input_val = st.text_area("ASINs (comma-separated)", value=default_asins, help="e.g. B08N5WRWNW,B07XYZ1234,B09B2SB9Y6")
+        
+        review_limit = st.selectbox(
+            "Reviews per ASIN",
+            options=[50, 100, 200, 500, 1000],
+            index=1,
+            help="Higher numbers take longer and use more API credits. 100-200 is recommended."
+        )
+        
+        col_scrape, col_ai = st.columns(2)
+        with col_scrape:
+            skip_scrape = st.checkbox("Skip Scrape", value=False, help="Use cached local reviews in DB.")
+        with col_ai:
+            skip_ai = st.checkbox("Skip AI", value=False, help="Skip Claude AI criteria & scoring.")
+            
+        run_btn = st.button("Start Analysis")
+        
+        if run_btn:
+            # Parse ASINs
+            asins_to_run = [a.strip().upper() for a in asin_input_val.split(",") if a.strip()]
+            if not asins_to_run or len(asins_to_run) < 2:
+                st.error("Please enter at least 2 ASINs (1 yours + 1 or more competitors).")
+            elif len(asins_to_run) > 10:
+                st.warning("More than 10 ASINs entered. Only the first 10 will be analyzed.")
+                asins_to_run = asins_to_run[:10]
+            else:
+                # Run pipeline inside a status container
+                with st.status("Running analysis pipeline...", expanded=True) as status:
+                    try:
+                        status.write("Initializing Database...")
+                        db.init_db()
+                        
+                        # Stage 1
+                        if not skip_scrape:
+                            status.write("Stage 1: Scraping listings & reviews (Rainforest)...")
+                            pipeline.run_scrape(asins_to_run, target_reviews=review_limit)
+                        else:
+                            status.write("Stage 1: Skipping scraping stage (using cached data).")
+                            
+                        # Stage 2
+                        status.write("Stage 2: Estimating monthly sales & revenue...")
+                        pipeline.run_revenue()
+                        
+                        # Stage 3 & 4
+                        if not skip_ai:
+                            status.write("Stage 3: Extracting customer purchase criteria (Claude AI)...")
+                            pipeline.run_criteria()
+                            
+                            status.write("Stage 4: Scoring listings against criteria (Claude AI)...")
+                            pipeline.run_scoring(asins_to_run)
+                        else:
+                            status.write("Stages 3 & 4: Skipping AI criteria and scoring.")
+                            
+                        status.update(label="Analysis complete! Reloading...", state="complete")
+                        st.success("Successfully completed analysis!")
+                        
+                        # Clear cache and rerun
+                        st.cache_data.clear()
+                        st.rerun()
+                    except Exception as e:
+                        status.update(label="Pipeline failed!", state="error")
+                        st.error(f"Error running pipeline: {str(e)}")
+
+    if listings:
+        st.markdown("<hr style='border-color: rgba(255,255,255,0.05); margin: 1.5rem 0;'>", unsafe_allow_html=True)
+        st.markdown("<h3 style='font-size: 1rem; margin-bottom: 0.8rem; color: #f8fafc;'>Competitor Matrix</h3>", unsafe_allow_html=True)
+        
+        for i, asin in enumerate(listings.keys()):
+            l = listings[asin]
+            is_user = i == 0
+            label = "✨ YOUR LISTING" if is_user else f"🎯 Competitor {i}"
+            color = "#8b5cf6" if is_user else "#3b82f6"
+            
+            st.markdown(f"""
+            <div style="background: rgba(30,30,45,0.4); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; border-left: 4px solid {color}; border-top: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
+                <div style="font-weight: 600; font-size: 0.9rem; color: {color}; margin-bottom: 0.3rem;">{label}</div>
+                <div style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 0.3rem; line-height: 1.4;">{short_label(l)}</div>
+                <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">ASIN: {asin}</div>
+            </div>
+            """, unsafe_allow_html=True)
+
+        st.markdown("<br>", unsafe_allow_html=True)
+        if st.button("🔄 Refresh Data Analysis"):
+            st.cache_data.clear()
+            st.rerun()
+
+# ── Main Content / Checks ─────────────────────────────────────────────────────
 
 if not listings:
-    st.error("### 🚀 No Data Found\nIt looks like the pipeline hasn't been run yet. Please execute the following command in your terminal:\n\n`python pipeline.py --asins B0XXXXX,...`")
+    st.error("### 🚀 No Data Found\nIt looks like the pipeline hasn't been run yet. Please enter your ASINs in the sidebar on the left and click **'Start Analysis'** to get started!")
     st.stop()
 
 asins = list(listings.keys())
 user_asin = asins[0]
+revenue_rows = your_revenue_rows
 
 # High-level Metrics
 col1, col2, col3, col4 = st.columns(4)
@@ -202,30 +302,6 @@ with col4:
     st.metric("Your Est. Revenue", f"${user_rev:,.0f}")
 
 st.markdown("<br>", unsafe_allow_html=True)
-
-# ── Sidebar ───────────────────────────────────────────────────────────────────
-
-with st.sidebar:
-    st.markdown("<h2 style='text-align: center; margin-bottom: 1.5rem;'>Competitor Matrix</h2>", unsafe_allow_html=True)
-    
-    for i, asin in enumerate(asins):
-        l = listings[asin]
-        is_user = i == 0
-        label = "✨ YOUR LISTING" if is_user else f"🎯 Competitor {i}"
-        color = "#8b5cf6" if is_user else "#3b82f6"
-        
-        st.markdown(f"""
-        <div style="background: rgba(30,30,45,0.4); padding: 1rem; border-radius: 12px; margin-bottom: 1rem; border-left: 4px solid {color}; border-top: 1px solid rgba(255,255,255,0.05); border-right: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05);">
-            <div style="font-weight: 600; font-size: 0.9rem; color: {color}; margin-bottom: 0.3rem;">{label}</div>
-            <div style="font-size: 0.85rem; color: #e2e8f0; margin-bottom: 0.3rem; line-height: 1.4;">{short_label(l)}</div>
-            <div style="font-size: 0.75rem; color: #64748b; font-family: monospace;">ASIN: {asin}</div>
-        </div>
-        """, unsafe_allow_html=True)
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    if st.button("🔄 Refresh Data Analysis"):
-        st.cache_data.clear()
-        st.rerun()
 
 # ── Tabs ──────────────────────────────────────────────────────────────────────
 
